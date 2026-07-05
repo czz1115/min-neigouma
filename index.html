@@ -78,7 +78,7 @@
     color: #999;
   }
 
-  /* ✅ 新增：复制按钮样式 */
+  /* ✅ 复制按钮样式 */
   .copy-btn {
     margin-left: 8px;
     padding: 2px 10px;
@@ -141,8 +141,8 @@
   <p>3、请妥善保管你的内购码</p>
 </div>
 
-<!-- ✅ 引入 config.js -->
-<script src="config.js"></script>
+<!-- ✅ 关键：使用绝对路径引入 config.js -->
+<script src="/config.js"></script>
 
 <script>
 let codePool = window.NEIGOU_CODES || [];
