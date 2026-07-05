@@ -77,6 +77,22 @@
     font-size: 13px;
     color: #999;
   }
+
+  /* ✅ 新增：复制按钮样式 */
+  .copy-btn {
+    margin-left: 8px;
+    padding: 2px 10px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: 1px solid #a5d6a7;
+    background: #fff;
+    color: #2e7d32;
+    cursor: pointer;
+  }
+  .copy-btn:active {
+    opacity: 0.7;
+  }
+
   .tips {
     margin-top: 40px;
     padding: 16px;
@@ -125,44 +141,12 @@
   <p>3、请妥善保管你的内购码</p>
 </div>
 
+<!-- ✅ 引入 config.js -->
+<script src="config.js"></script>
+
 <script>
-let codePool = [
-  "NG11ioRmNj",
-  "NG11SaC9G2",
-  "NG11sKVYhm",
-  "NG11nsmEkZ",
-  "NG118MP2cz",
-  "NG11CObg84",
-  "NG11sx0l29",
-  "NG11IKLSal",
-  "NG116mj32q",
-  "NG111rBUux",
-  "NG11AacI0z",
-  "NG11cwIR3r",
-  "NG11PO4gn2",
-  "NG11XlKCzu",
-  "NG11i4zokE",
-  "NG11qew6F5",
-  "NG11EnFXAq",
-  "NG11ao5yXm",
-  "NG11t2qUe8",
-  "NG11Ti1RaE",
-  "NG11zdOu8F",
-  "NG1174wqhA",
-  "NG11o1Zipe",
-  "NG11VSZW4m",
-  "NG11E1jcVR",
-  "NG11lRt4Ma",
-  "NG118AeQNJ",
-  "NG11dBQ73I",
-  "NG11ZnPcBg",
-  "NG11QNVnU9",
-  "NG117WELIr",
-  "NG11B6EKLu",
-  "NG11mDLo61",
-  "NG11dCKmlM",
-  "NG11RhOeCi"
-];
+let codePool = window.NEIGOU_CODES || [];
+const CURRENT_BATCH = window.NEIGOU_BATCH || '';
 
 const MAX_CLAIM = 1;
 
@@ -175,17 +159,35 @@ const codeListEmpty = document.getElementById("codeListEmpty");
 
 let claimedCount = Number(localStorage.getItem("claimedCount") || 0);
 let claimedCodes = JSON.parse(localStorage.getItem("claimedCodes") || "[]");
+let savedBatch = localStorage.getItem("neigou_batch") || '';
+
+/* ✅ 批次变更检测：如果批次变了，清空旧记录 */
+if (savedBatch !== CURRENT_BATCH) {
+  localStorage.removeItem("claimedCount");
+  localStorage.removeItem("claimedCodes");
+  localStorage.setItem("neigou_batch", CURRENT_BATCH);
+  claimedCount = 0;
+  claimedCodes = [];
+}
 
 /* 初始化显示 */
-info.innerText = "\u5df2\u9886\u53d6 " + claimedCount + "/" + MAX_CLAIM + " \u4e2a";
-remain.innerText = "\u5269\u4f59\u53ef\u9886\u53d6\uff1a" + codePool.length + " \u4e2a";
+info.innerText = "已领取 " + claimedCount + "/" + MAX_CLAIM + " 个";
+remain.innerText = "剩余可领取：" + codePool.length + " 个";
 
-/* 展示已领取的码 */
+/* 展示已领取的码（含复制按钮） */
 function renderClaimedCodes() {
   if (claimedCodes.length > 0) {
     codeListEmpty.style.display = "none";
     codeList.style.display = "block";
-    codeList.innerHTML = claimedCodes.join("<br>");
+    codeList.innerHTML = claimedCodes
+      .map(
+        (code, i) =>
+          `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">
+            <span>${code}</span>
+            <button class="copy-btn" onclick="copyCode(${i})">复制</button>
+          </div>`
+      )
+      .join("");
   } else {
     codeListEmpty.style.display = "block";
     codeList.style.display = "none";
@@ -193,21 +195,22 @@ function renderClaimedCodes() {
 }
 renderClaimedCodes();
 
+/* 如果已领满，禁用按钮 */
 if (claimedCount >= MAX_CLAIM) {
   btn.disabled = true;
-  result.innerText = "\u4f60\u5df2\u9886\u53d6\u6ee1 " + MAX_CLAIM + " \u4e2a\uff0c\u611f\u8c22\u53c2\u4e0e\uff01";
+  result.innerText = "你已领取满 " + MAX_CLAIM + " 个，感谢参与！";
 }
 
 btn.onclick = () => {
   if (codePool.length === 0) {
-    result.innerText = "\u274c \u5185\u8d2d\u7801\u5df2\u5168\u90e8\u9886\u5b8c";
+    result.innerText = "❌ 内购码已全部领完";
     btn.disabled = true;
-    remain.innerText = "\u5269\u4f59\u53ef\u9886\u53d6\uff1a0 \u4e2a";
+    remain.innerText = "剩余可领取：0 个";
     return;
   }
 
   if (claimedCount >= MAX_CLAIM) {
-    result.innerText = "\u274c \u6bcf\u4eba\u6700\u591a\u9886\u53d6 " + MAX_CLAIM + " \u4e2a";
+    result.innerText = "❌ 每人最多领取 " + MAX_CLAIM + " 个";
     btn.disabled = true;
     return;
   }
@@ -220,10 +223,11 @@ btn.onclick = () => {
 
   localStorage.setItem("claimedCount", claimedCount);
   localStorage.setItem("claimedCodes", JSON.stringify(claimedCodes));
+  localStorage.setItem("neigou_batch", CURRENT_BATCH);
 
   result.innerText = code;
-  info.innerText = "\u5df2\u9886\u53d6 " + claimedCount + "/" + MAX_CLAIM + " \u4e2a";
-  remain.innerText = "\u5269\u4f59\u53ef\u9886\u53d6\uff1a" + codePool.length + " \u4e2a";
+  info.innerText = "已领取 " + claimedCount + "/" + MAX_CLAIM + " 个";
+  remain.innerText = "剩余可领取：" + codePool.length + " 个";
 
   renderClaimedCodes();
 
@@ -231,6 +235,25 @@ btn.onclick = () => {
     btn.disabled = true;
   }
 };
+
+/* ✅ 复制单个码 */
+function copyCode(index) {
+  const code = claimedCodes[index];
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(code).then(() => {
+      alert("✅ 已复制：" + code);
+    });
+  } else {
+    // 兼容旧浏览器
+    const textarea = document.createElement("textarea");
+    textarea.value = code;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
+    alert("✅ 已复制：" + code);
+  }
+}
 </script>
 
 </body>
